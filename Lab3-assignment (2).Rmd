@@ -1,0 +1,153 @@
+---
+title: "Tidyverse lab assignment"
+author: "Kate Nelson"
+date: "1/17/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The Setup
+
+For this lab assignment you will want to use base R and `dplyr` and `ggplot2` packages.
+
+## The Data
+
+For this assignment you will work with the USDA Food Atlas dataset that describes access to food (via a supermarket) and demographic variables across the nation by US census tracts. You can download this data (*FoodAtlas.csv*) on canvas. Per usual, when you get this data in R you should first examine it's structure so you know what you are working with. You may also want to check out the variable key in *FoodAtlas_key.csv* so you know what the variables are.
+
+## The Assignment
+
+For this assignment I'd like to see you use the `tidyverse` to do most of your data wrangling. You may use Base R if you are more comfortable with it, but do not use it exclusively. While I won't force you to use the `tidyverse` in later assignments I do think it is important for you to practice using it early on as you will probably regret not doing it later... 
+
+
+Please complete each of the tasks below. Your assignment should, as always, be a markdown document with text explaining what you are doing and code chunks showing how you did it and what the results are. You should submit both .Rmd and .html versions of the markdown document in Canvas.
+
+1. This is a rather large dataset so start by reducing this down to the first 24 and last 12 variables in the original set. 
+
+```{r foodatlas, results = "hide", echo=FALSE, message=FALSE}
+library(tidyverse)
+
+fa<-read.csv("FoodAtlas.csv",stringsAsFactors = FALSE)
+
+df<-fa[ ,c(1:24,135:147)]
+
+df<-fa %>% select(., c(1:24, 135:147))
+
+fa_sub<- fa %>% select(c(CensusTract:POP2010,TractLOWI:TractSNAP))
+
+```
+
+2. Examine this reduced dataset and describe what type of data you're working with. What is the data structure? What types of variables? Etc...
+
+```{r description, results = "hide", echo=FALSE}
+
+str(df)
+
+head(df)
+
+```
+
+3. Now make a new data object for the state of Kansas that includes just `County`, `POP2010`, `LAhalfand10`, `MedianFamilyIncome`,`TractSNAP`, and `TractKids` variables.
+
+
+```{r Kansas, results = "hide", echo=FALSE}
+
+KS <- df %>% filter(State == "Kansas") %>% select(County, POP2010, LAhalfand10, MedianFamilyIncome, TractKids, TractSNAP)
+
+head(KS)
+
+```
+
+4. Create a plot to illustrate the differences in `MedianFamilyIncome` across counties in Kansas. Are there significant differences across counties? Which counties have the greatest variation in income?
+
+```{r Kansasplot, results = "hide", echo=FALSE, fig.width=6, fig.height=12, fig.show="hide"}
+
+ggplot(data = KS, aes(x = County, y = MedianFamilyIncome)) + 
+  geom_boxplot(fill = "blue", alpha = 0.5, outlier.size = 0.25, position = position_dodge( width = 2, preserve = "single")) + 
+  coord_flip() 
+
+```
+
+ 5. Now check to see how `MedianFamilyIncome` compares across locations with low (or not) food accessability (`LAhalfand10`). Compare using both basic descriptive statistics and graphical representation. What did you find?
+ 
+```{r KansasLA, results = "hide", echo=FALSE, fig.show="hide", fig.width = 4, fig.height=4}
+
+KS %>% group_by(as.factor(LAhalfand10)) %>% summarise(averageIncome = mean(MedianFamilyIncome, na.rm=T), variationIncome = sd(MedianFamilyIncome, na.rm=T))
+
+ggplot(data = KS, aes(x = as.factor(LAhalfand10), y = MedianFamilyIncome)) + 
+  geom_boxplot(fill = "blue", alpha = 0.5, outlier.size = 0.25, position = position_dodge( width = 2, preserve = "single")) + 
+  xlab("Low accessability \n (0.5miles in urban areas and 10miles in rural)")
+
+```
+
+6. Choose one other variable in your Kansas data and examine the variations across counties and food accessability using both descriptive statistics and graphical comparison. What did you find?
+
+```{r KansasLA2, results = "hide", echo=FALSE, fig.show="hide", fig.width = 6, fig.height=8}
+
+ggplot(data = KS, aes(x = County, y = TractKids)) + 
+  geom_boxplot(fill = "blue", alpha = 0.5, outlier.size = 0.25, position = position_dodge( width = 2, preserve = "single")) + 
+  coord_flip() 
+
+KS %>% group_by(as.factor(LAhalfand10)) %>% summarise(averageSNAP = mean(TractKids, na.rm=T), variationSNAP = sd(TractKids, na.rm=T))
+
+ggplot(data = KS, aes(x = as.factor(LAhalfand10), y = TractKids)) + 
+  geom_boxplot(fill = "blue", alpha = 0.5, outlier.size = 0.25, position = position_dodge( width = 2, preserve = "single")) + 
+  xlab("Low accessability \n (0.5miles in urban areas and 10miles in rural)")
+
+```
+
+ 7. Using either descriptive statistics or graphical comparison (or both) examine how the variable in your Kansas dataset relate to food accessability and food assistance (SNAP). What variables most explain food accessability and food assistance? (Show yourwork please.)
+ 
+ 
+```{r Kansasfull, results = "hide", echo=FALSE, fig.show="hide", fig.width = 6, fig.height=6}
+
+plot(KS[ ,2:6], cex=0.5, pch = 16, col = "steelblue")
+
+```
+ 
+ 8. Use the full national dataset you created in step 1 and create a state-by-state summary of each variable. Use this state summary dataset to examine how food accessability varies across states (you can choose which measure of food accessability to use). Which states have the most problems with food accessability? Which have the lowest?
+ 
+ 
+```{r national, results = "hide", echo=FALSE, fig.show="hide", fig.width = 6, fig.height=6}
+
+st_summ<-df %>% group_by(State) %>% summarise_at(., vars(4:36), mean, na.rm=T)
+head(st_summ)
+
+ggplot(data = st_summ, aes(x = State, y = LAhalfand10)) + 
+  geom_col( alpha = 0.5,  position = position_dodge( width = 2, preserve = "single")) + 
+  coord_flip() + 
+  xlab("Low accessability \n (0.5miles in urban areas and 10miles in rural)")
+
+```
+
+ 9. Examine the trends between 3 variables of your choice and food accessability across states in the US and describe your findings. 
+ 
+ 
+```{r nationaltrends, results = "hide", echo=FALSE, fig.show="hide", fig.width = 6, fig.height=6, message=FALSE}
+
+ggplot(data = st_summ) + 
+  geom_point(aes(x = LAhalfand10, y = POP2010, color="black")) +
+  geom_point(aes(x = LAhalfand10, y = TractKids, color="blue")) +
+  geom_point(aes(x = LAhalfand10, y = TractBlack, color="green")) +
+  geom_point(aes(x = LAhalfand10, y = TractHispanic, color="orange")) + 
+  scale_color_manual(values= c("black","#999999", "#E69F00", "#56B4E9"),labels=c("Total Population", "Kids", "Black", "Hispanic")) +
+  ylab ("Average Tract Population by State")
+               
+            
+ggplot(data = st_summ) + 
+  geom_smooth(aes(x = LAhalfand10, y = POP2010, color="black")) +
+  geom_smooth(aes(x = LAhalfand10, y = TractKids, color="blue")) +
+  geom_smooth(aes(x = LAhalfand10, y = TractBlack, color="green")) +
+  geom_smooth(aes(x = LAhalfand10, y = TractHispanic, color="orange")) + 
+  scale_color_manual(values= c("black","#999999", "#E69F00", "#56B4E9"),labels=c("Total Population", "Kids", "Black", "Hispanic")) +
+  ylab ("Average Tract Population by State")
+               
+
+```
+
+
+
+
+

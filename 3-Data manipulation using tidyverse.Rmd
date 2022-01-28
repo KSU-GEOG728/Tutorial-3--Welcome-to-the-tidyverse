@@ -1,0 +1,212 @@
+---
+title: "Welcome to the tidyverse"
+author: "Kate Nelson"
+date: "1/28/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Objectives
+
+- Learn how to use `dplyr` to clean and wrangle your data.
+- Learn how to plot with `ggplot2`
+
+
+## Before Lab
+
+- Read Chapters 3.1 to 3.4, 3.6, and Chapter 5 of [R for Data Science](https://r4ds.had.co.nz/data-visualisation.html)
+- Complete this tutorial
+
+## Acknowledgements {.tabset}
+
+This tutorial is adapted from Dr. Emily Burchfield's fantastic tutorial on [Data Management](https://eburchfield.github.io/files/2_describing_data_lab.html). 
+
+### Set-up
+
+This tutorial will make use of the `gapminder` package again. Start by loading the package and the gapminder data.
+
+
+```{r gapminder, results = "hide"}
+library(gapminder)
+data(gapminder)
+```
+
+You’ll also want to be sure to install and load the `tidyverser` package. This is a suite of packages that includes dplyr and ggplot2. 
+```{r tidyverse}
+
+library(tidyverse)
+
+```
+
+We already are familiar with this dataset so let's get right into it.
+
+
+
+### Subsetting and more using `dplyr`
+
+The <code>dplyr</code> package is one of a number of packages in the <code>tidyverse</code> set of packages that makes data wrangling, indexing, and plotting much easier. In this class, we’ll frequently use this set of packages. Yes, you can do the same things using base <code>R</code>, but while they may seem a bit trickier initially, the tools in the <code>tidyverse</code> are extremely powerful and worth learning. Not convinced? [Check this out](http://varianceexplained.org/r/teach-tidyverse/).
+
+Instead of indexing with <code>[,]</code>, <code>$</code> and other symbols, <code>dplyr</code> contains several functions that make data organization much simpler:
+<ul>
+<li><code>select()</code>: select columns</li>
+<li><code>filter()</code>: select rows</li>
+<li><code>arrange()</code>: order or arrange rows</li>
+<li><code>mutate()</code>: create new columns</li>
+<li><code>summarize()</code>: summarize values (for the Brits in the room, you can also use <code>summarise()</code>)</li>
+<li><code>group_by()</code>: group observations</li>
+</ul>
+
+Ok, let’s try to create the same Sri Lanka dataset with year and GDP per capita that we made last week using the <code>dplyr</code> package instead of Base R. Don’t forget to load either the <code>tidyverse</code> package which contains <code>dplyr</code> (<code>library(tidyverse)</code>) or just <code>dplyr</code> using <code>library(dplyr)</code> if you haven’t already:
+
+```{r sri_lanka}
+
+sri_lanka_gdp <- gapminder %>%
+  filter(country == "Sri Lanka") %>%
+  select(year, gdpPercap)
+
+head(sri_lanka_gdp)
+```
+
+A few things are happening here. First, you’re probably wondering what that crazy <code>%>%</code> thing is. We’ll get there. 
+
+First, let’s look at the two functions I’m using to create the dataset. Since we only care about Sri Lanka, we start by <code>filter</code>ing our the rows in which <code>country=="Sri Lanka"</code>. We then <code>select</code> the columns we’re interested in, <code>year</code> and <code>gdpPercap</code>. 
+
+So what is the <code>%>%</code> thing about? This is called a <em>pipe.</em> This allows you to send the **output** from one function to the **input** of another. In this example, we start with the full <code>gapminder</code> dataset. We feed the <em>full</em> dataset into the the <code>filter()</code> function, which selects only rows for Sri Lanka. We then feed this new Sri Lankan dataset into the <code>select()</code> function to select only columns of interest to us. This keeps us from having to create two separate <code>data.frames</code> or from complicated indexing (i.e. <code>c("gdpPercap";, etc)</code>). It also is very easy for other <code>R</code> programmers to read because it reads like plain old English.
+
+Not convinced yet that this trumps base <code>R</code>? Ok, say you want to know the average, maximum, and minimum GDP for Sri Lanka over the last 50 years. No problem:
+
+```{r Sri_lanka_summary}
+
+gapminder %>%
+  filter(country == "Sri Lanka") %>%
+  select(year, gdpPercap) %>%
+  summarize(avg_gdp = mean(gdpPercap), max_gdp = max(gdpPercap), min_gdp = min(gdpPercap))
+
+```
+
+The <code>summarize()</code> function takes all rows in each columns and applies a function to these rows. <code>mean(gdpPercap)</code> takes the mean of all observations of <code>gdpPercap</code> for Sri Lanka and returns the average, summarized as the new variable <code>avg_gdp</code>.
+
+Let’s go a bit further. Let’s say you want to know which countries have the highest average life expectancy:
+
+```{r life_exp}
+
+gapminder %>%
+  group_by(country) %>%
+  summarize(mean_le = mean(lifeExp)) %>%
+  arrange(desc(mean_le))
+
+```
+
+
+Notice the use of the <code>group_by()</code> function. This is an important step. It groups the data by country (you could also group by year or any other categorical variable) and then applies the function specified in the <code>summarize()</code> function to each group of data, in our case, to each <code>country</code>. We use the function <code>mean()</code>, but you can apply any function you can find (or build!) to this grouped data. I find this simpler and much easier to read than answering the same question using base <code>R</code>, and this is why we as a class will invest time and energy in learning the ways of the <code>tidyverse</code>. 
+
+I should add, however, that I’m a big proponent of the <em>you do you</em> philosophy, so if you feel strongly attached to base <code>R</code> and choose to use base <code>R</code> to work with your data, <em>you do you</em>. I’ll also say that on big projects, you tend to use a bit of both, so be sure you’ve reviewed the base <code>R</code> resources provided last week.
+
+What if we want to add a new variable to our dataset? Let's try recreating the Africa indicator we made last week, but this time using the `mutate()` function in `dplyr`. <code>mutate()</code> allows us to easily add new variables to our <code>data.frame</code>.
+
+```{r mutate}
+
+africa <- gapminder %>%
+  mutate(africa = ifelse(continent == "Africa", 1, 0))
+
+head(africa)
+
+```
+
+<p>This creates a new <code>data.frame</code> to which I’ve added a new variable called <code>africa</code> that is equal to <code>1</code> if the observation is located in the continent of Africa and <code>0</code> if it is not. The <code>ifelse()</code> function is quite useful, check it out using <code>?</code>. This has been your quick intro to <code>dplyr</code>. For more examples of data wrangling and manipulation with <code>dplyr</code>, I recommend [this post](http://genomicsclass.github.io/book/pages/dplyr_tutorial.html) as well as the pre-assignment readings written by the <code>dplyr</code> creator and `tidyverse` wizard Hadley Wickham. 
+
+<center>![](hadley wickham.png)</center>
+
+### Plotting using `ggplot2`  
+
+Manipulating <code>data.frames</code> is all fine and good, but the fun (yes, I’m telling you, this stuff can be fun!) really starts when you start visualizing data. Yet again, the <code>tidyverse</code> dominates with a powerful package called <code>ggplot2</code>. <code>ggplot2</code> makes it easy for you to create beautiful data visualizations. Check out the <code>ggplot</code> [gallery](https://www.r-graph-gallery.com/ggplot2-package.html) if you don’t believe me! This lab will give you a very short introduction to <code>ggplot2</code>. We’ll spend more time on this package in the following weeks and eventually learn how to plot spatial data with <code>ggplot2</code> (and other packages).
+
+Let’s start by plotting data from a single country. Let’s say we’re interested in how life expectancy has changed from the 1950s to present in the United States. Well, with <code>dplyr</code> it’s now easy for us to pull out data for the U.S. from our larger <code>data.frame</code> and assign it to a new, smaller <code>data.frame</code> called <code>us</code>.
+
+```{r us}
+
+us <- gapminder %>%
+  filter(country == "United States")
+
+```
+  
+Easy peasy. Now to plot this. When plotting with <code>ggplot</code> you start by calling the <code>ggplot()</code> function. This creates a blank plot with a coordinate system that you can add data to. The first argument of the <code>ggplot()</code> functions is the dataset you want to plot. In our case, this is the <code>us</code> <code>data.frame</code> we just built:
+
+```{r blank}
+
+ggplot(data=us)
+
+```
+
+For now the plot is blank because we haven’t told <code>ggplot2</code> how to deal with the data. We can add additional layers to the plot by using the <code>+</code> symbol. Each layer provides more information about how we’d like to plot the data. Say we want to plot points indicating life expectancy through time. You can get a full list of the types of plots at [this website](http://ggplot2.tidyverse.org/reference/) under the <code>Layer:geoms</code> section. For now, we’ll use the <code>geom_point</code> function to plot points:
+
+```{r us_plot}
+
+ggplot(data=us) +
+  geom_point(mapping = aes(x = year, y = lifeExp))
+
+```
+
+Notice how this code looks similar in structure to the code we wrote using `dplyr`?
+
+<code>geom_point()</code> takes a <code>mapping</code> argument in which we specify the aesthetics <code>aes</code> and indicate which variable we’d like to plot on the x axis (year) and which we’d like to plot on the y axis (lifeExp). I know, this isn’t the most elegant way to do this, but once you get past the mapping/aesthetic specifications, adding additional detail is <em>very</em> easy.
+
+Let’s fix a few new details to our plot. It could use better axis labels and a clear title. It could also be nice to change the color of the points to make them stand out a bit more:
+
+```{r us_plot2}
+
+ggplot(data=us) +
+  geom_point(mapping = aes(x = year, y = lifeExp), color = "blue") +
+  ggtitle("Life expectancy in the U.S.") +
+  xlab("Year") +
+  ylab("Life expectancy")
+
+```
+
+Much better. Depending on what we want to plot, we can change the geometry object we use. If we want a smoothed line plot, we could use <code>geom_smooth</code>:
+
+```{r smooth_line}
+
+ggplot(data=us) +
+  geom_smooth(mapping = aes(x = year, y = lifeExp), color = "blue") +
+  ggtitle("Life expectancy in the U.S.") +
+  xlab("Year") +
+  ylab("Life expectancy")
+
+```
+
+Another cool trick is that we can pipe <code>%>%</code> our <code>dplyr</code> manipulations straight into a <code>ggplot()</code>. Let’s make a life expectancy plot for Sierra Leone using this approach:
+
+```{r pipe_plot}
+
+gapminder %>%
+  filter(country == "Sierra Leone") %>%
+  ggplot() +
+  geom_smooth(mapping = aes(x = year, y = lifeExp), color = "blue") +
+  ggtitle("Life expectancy in Sierra Leone") +
+  xlab("Year") +
+  ylab("Life expectancy")
+
+```
+
+What if we wanted to compare life expectancy in the United States with life expectancy in Sierra Leone in a single plot?
+
+```{r us_sl_plot}
+
+gapminder %>%
+  filter(country %in% c("Sierra Leone", "United States")) %>%
+  ggplot() +
+  geom_smooth(mapping = aes(x = year, y = lifeExp, color = country)) +
+  ggtitle("Comparing life expectancy") +
+  xlab("Year") +
+  ylab("Life expectancy")
+
+```
+
+If you want to filter using multiple criteria, use <code>%in%</code> rather than <code>==</code>. This selects all rows with <code>country</code> equal to the countries in the list we created using <code>c()</code>. Since our <code>data.frame</code> contains information from two countries, we can add an argument to the <code>geom_smooth()</code> function that tells <code>ggplot()</code> to group observations by country and to symbolize them using two different colors. We do this by adding the argument <code>color=country</code>.
+
+  
+  
